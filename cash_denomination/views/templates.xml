@@ -1,0 +1,252 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="website_menu_cash_denomination" model="website.menu">
+        <field name="name">Cash Denomination</field>
+        <field name="url">/cash/denomination</field>
+        <field name="sequence">20</field>
+        <field name="parent_id" ref="website.main_menu"/> <!-- Optional, for top-level menu -->
+    </record>
+    <template id="website_cash_denomination" name="Cash Denomination">
+        <t t-call="website.layout">
+
+            <div id="wrap" class="oe_structure" style="min-height:100vh; display:flex; align-items:center; justify-content:center; overflow:hidden;">
+                <section class="container-fluid d-flex justify-content-center align-items-center" style="height:100vh;">
+                    <form id="cash_denomination_form" action="/cash/denomination/submit" method="post"
+                          class="p-4 border rounded shadow bg-white" style="max-width:90%; max-height:90%; overflow:auto;">
+
+                        <h1 class="text-center mb-4">Cash Denomination</h1>
+
+                        <!-- Row 1: Date, Person, Counter, Cash Fields -->
+                        <div class="row mb-4">
+                            <div class="col-md-2">
+                                <label for="date" class="form-label">Date</label>
+                                <input type="date" name="date" id="date_field" class="form-control" required="required"/>
+                            </div>
+
+                            <div class="col-md-2">
+                                <label for="person" class="form-label">Person</label>
+                                <input type="text" name="person" class="form-control" t-att-value="request.env.user.name" readonly="readonly"/>
+                            </div>
+
+                            <div class="col-md-2">
+                                <label for="counter" class="form-label">Counter</label>
+                                <select name="counter" id="counter" class="form-control" required="required">
+                                    <t t-foreach="counters" t-as="ctr">
+                                        <option t-att-value="ctr.id"><t t-esc="ctr.cash_counter"/></option>
+                                    </t>
+                                </select>
+                            </div>
+
+                            <div class="col-md-2">
+                                <label class="form-label">Total Invoiced Cash</label>
+                                <input type="text" class="form-control" t-att-value="total_cash" readonly="readonly"/>
+                            </div>
+
+                            <div class="col-md-2">
+                                <label class="form-label">Total Cash in Hand</label>
+                                <input type="text" id="cash_in_hand" class="form-control" t-att-value="total_cash" readonly="readonly"/>
+                            </div>
+
+                            <!-- Button to open transfer modal -->
+                            <div class="col-md-2 d-flex align-items-end">
+                                <button type="button" class="btn" data-bs-toggle="modal" data-bs-target="#transferModal" style="background-color: #bcb9bc;">
+                                    Transfer Cash
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Denomination Table -->
+                        <div style="max-height:50vh; overflow-y:auto;">
+                            <table class="table table-bordered text-center">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Count</th>
+                                        <th>Currency</th>
+                                        <th>Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr t-foreach="[500,200,100,50,20,10,5,2,1]" t-as="val">
+                                        <td>
+                                            <input type="number" min="0" t-att-name="'counts_%s' % val"
+                                                   class="form-control counts-input" t-att-data-value="val"/>
+                                        </td>
+                                        <td>
+                                            <input type="text" class="form-control" t-att-value="val" readonly="readonly"/>
+                                        </td>
+                                        <td>
+                                            <input type="text" class="form-control total-field" readonly="readonly"/>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Submit -->
+                        <div class="d-flex justify-content-center align-items-center mt-4 position-relative">
+                            <div class="mx-auto">
+                                <button type="submit" class="btn btn-primary px-4">Submit</button>
+                            </div>
+                            <div class="position-absolute" style="right: 0;">
+                                <strong>Total Amount: </strong>
+                                <input type="text" id="grand_total" class="form-control d-inline-block" style="width:150px;" readonly="readonly"/>
+                            </div>
+                        </div>
+
+                    </form>
+                </section>
+            </div>
+
+            <!-- Bootstrap Modal -->
+            <div class="modal fade" id="transferModal" tabindex="-1" aria-labelledby="transferModalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content">
+                        <div class="modal-header" >
+                            <h4 class="text-center mb-4" id="transferModalLabel">Transfer Cash to Another Counter</h4>
+                            <button type="button" class="btn-close btn-close-black" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <form id="transfer_form" action="/cash/transfer/submit" method="post">
+                                <input type="hidden" name="from_counter" id="from_counter"/>
+
+                                <div class="mb-3">
+                                    <label for="to_counter" class="form-label">Transfer To Counter</label>
+                                    <select id="to_counter" name="to_counter" class="form-control" required="required">
+                                        <t t-foreach="to_counter" t-as="ctr">
+                                            <option t-att-value="ctr.id"><t t-esc="ctr.cash_counter"/></option>
+                                        </t>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="transfer_to_user" class="form-label">User</label>
+                                    <select id="transfer_to_user" name="transfer_to_user" class="form-control" required="required">
+                                        <t t-foreach="request.env['res.users'].sudo().search([('id', '!=', request.env.user.id)])" t-as="usr">
+                                            <option t-att-value="usr.id"><t t-esc="usr.name"/></option>
+                                        </t>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="transfer_amount" class="form-label">Amount</label>
+                                    <input type="number" name="transfer_amount" id="transfer_amount" min="1" class="form-control" required="required"/>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="remarks" class="form-label">Remarks</label>
+                                    <textarea name="remarks" id="remarks" class="form-control" rows="2" placeholder="Optional notes"></textarea>
+                                </div>
+                                <div class="d-flex justify-content-center align-items-center mt-4 position-relative">
+                                    <div class="mx-auto">
+                                        <button type="submit" class="btn btn-primary px-4">Transfer</button>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- JS -->
+            <script>
+                document.addEventListener("DOMContentLoaded", function () {
+                    const countInputs = document.querySelectorAll(".counts-input");
+                    const grandTotalField = document.getElementById("grand_total");
+                    const form = document.getElementById("cash_denomination_form");
+
+                    function updateTotals() {
+                        let grandTotal = 0;
+                        countInputs.forEach(function(input) {
+                            const currency = parseInt(input.dataset.value) || 0;
+                            const counts = parseInt(input.value) || 0;
+                            const total = counts * currency;
+                            input.closest("tr").querySelector(".total-field").value = total;
+                            grandTotal += total;
+                        });
+                        grandTotalField.value = grandTotal;
+                    }
+
+                    countInputs.forEach(function(input) {
+                        input.addEventListener("input", updateTotals);
+                    });
+
+                    const today = new Date().toISOString().split('T')[0];
+                    document.getElementById("date_field").value = today;
+                    updateTotals();
+
+                    form.addEventListener("submit", function(event) {
+                        let hasValue = false;
+                        countInputs.forEach(function(input) {
+                            if (parseInt(input.value) > 0) {
+                                hasValue = true;
+                            }
+                        });
+                        if (!hasValue) {
+                            event.preventDefault();
+                            alert("Please enter at least one count before submitting!");
+                        }
+                    });
+                    const urlParams = new URLSearchParams(window.location.search);
+                        if (urlParams.has('transfer_success')) {
+                            alert("Cash transfer record created successfully!");
+                            const cleanUrl = window.location.origin + window.location.pathname;
+                            window.history.replaceState({}, document.title, cleanUrl);
+                        }
+                     if (urlParams.has('success')) {
+                        alert("Cash denomination submitted successfully!");
+                        const cleanUrl = window.location.origin + window.location.pathname;
+                        window.history.replaceState({}, document.title, cleanUrl);
+                    }
+
+                //  When modal is opened, copy selected counter value
+                    const transferModal = document.getElementById("transferModal");
+                    transferModal.addEventListener("show.bs.modal", function () {
+                        const selectedCounter = document.getElementById("counter").value;
+                        document.getElementById("from_counter").value = selectedCounter;
+                    });
+<!--                ======================================================================================================-->
+<!--                    const transferForm = document.getElementById("transfer_form");-->
+<!--                    const cashInHandField = document.getElementById("cash_in_hand");-->
+
+<!--                    transferForm.addEventListener("submit", function(event) {-->
+<!--                        event.preventDefault(); // Stop normal form submission-->
+
+<!--                        const transferAmount = parseFloat(document.getElementById("transfer_amount").value) || 0;-->
+<!--                        let currentCash = parseFloat(cashInHandField.value) || 0;-->
+
+<!--                        if (transferAmount > currentCash) {-->
+<!--                            alert("Transfer amount cannot exceed cash in hand!");-->
+<!--                            return;-->
+<!--                        }-->
+
+<!--                        // Submit form via AJAX-->
+<!--                        const formData = new FormData(transferForm);-->
+<!--                        fetch(transferForm.action, {-->
+<!--                            method: "POST",-->
+<!--                            body: formData,-->
+<!--                            credentials: "same-origin"-->
+<!--                        })-->
+<!--                        .then(response => response.text())-->
+<!--                        .then(() => {-->
+<!--                            // Deduct the amount from Cash in Hand-->
+<!--                            cashInHandField.value = currentCash - transferAmount;-->
+
+<!--                            // Reset transfer form fields-->
+<!--                            document.getElementById("transfer_amount").value = '';-->
+<!--                            document.getElementById("remarks").value = '';-->
+
+<!--                            // Close the modal-->
+<!--                            const modal = bootstrap.Modal.getInstance(document.getElementById("transferModal"));-->
+<!--                            modal.hide();-->
+
+<!--                            alert("Cash transferred successfully!");-->
+<!--                        })-->
+<!--                        .catch(() => {-->
+<!--                            alert("Transfer failed! Please try again.");-->
+<!--                        });-->
+<!--                    });-->
+
+                });
+
+            </script>
+
+        </t>
+    </template>
+</odoo>
