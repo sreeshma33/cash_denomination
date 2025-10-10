@@ -44,7 +44,7 @@
 
                             <div class="col-md-2">
                                 <label class="form-label">Total Cash in Hand</label>
-                                <input type="text" id="cash_in_hand" class="form-control" t-att-value="total_cash" readonly="readonly"/>
+                                <input type="text" id="cash_in_hand" name="cash_in_hand" class="form-control" t-att-value="cash_in_hand" readonly="readonly"/>
                             </div>
 
                             <!-- Button to open transfer modal -->
@@ -89,7 +89,7 @@
                             </div>
                             <div class="position-absolute" style="right: 0;">
                                 <strong>Total Amount: </strong>
-                                <input type="text" id="grand_total" class="form-control d-inline-block" style="width:150px;" readonly="readonly"/>
+                                <input type="text" id="grand_total" name="grand_total"  class="form-control d-inline-block" style="width:150px;" readonly="readonly"/>
                             </div>
                         </div>
 
@@ -173,16 +173,28 @@
 
                     form.addEventListener("submit", function(event) {
                         let hasValue = false;
+                        let grandTotal = parseFloat(grandTotalField.value) || 0;
+                        let cashInHand = parseFloat(document.getElementById("cash_in_hand").value) || 0;
+
                         countInputs.forEach(function(input) {
                             if (parseInt(input.value) > 0) {
                                 hasValue = true;
                             }
                         });
+
                         if (!hasValue) {
                             event.preventDefault();
                             alert("Please enter at least one count before submitting!");
+                            return;
+                        }
+
+                        if (grandTotal !== cashInHand) {
+                            event.preventDefault();
+                            alert("Grand total does not match Cash in Hand! Please correct the counts.");
+                            return;
                         }
                     });
+
                     const urlParams = new URLSearchParams(window.location.search);
                         if (urlParams.has('transfer_success')) {
                             alert("Cash transfer record created successfully!");

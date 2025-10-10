@@ -21,64 +21,36 @@ class MyPageController(http.Controller):
                                                                 ('state', '=', 'paid'),
                                                                 ('date', '=', today)
                                                                 ])
+        cash_transfer = request.env['cash.transfer'].sudo().search([('name', '=', user.id),
+                                                                    ('date', '>=', f"{today} 00:00:00"),
+                                                                    ('date', '<=', f"{today} 23:59:59"),
+                                                                        ])
+        cash_transfer_amt = sum(cash_transfer.mapped('amount'))
         total_received_amt = sum(payment_receive.mapped('amount'))
         total_send_amt = sum(payment_send.mapped('amount'))
         sub_total= total_received_amt - total_send_amt
+        cash_in_hand = sub_total - cash_transfer_amt
 
         return request.render("cash_denomination.website_cash_denomination", {
             'counters': counters,
             'user': user,
             'total_cash': sub_total,
+            'cash_in_hand': cash_in_hand,
             'to_counter': to_counter,
         })
-    
-    # @http.route(['/cash/denomination/submit'], type='http', auth='user', methods=['POST'], website=True, csrf=False)
-    # def cash_denomination_submit(self, **post):
-    #     counter_id = post.get('counter')
-    #     date_str = post.get('date')
-    #     user = request.env.user
-    #     line_values = [
-    #         (0, 0, {
-    #             'counts': int(value),
-    #             'currency': key.split('_')[1],
-    #         })
-    #         for key, value in post.items()
-    #         if key.startswith('counts_') and value and int(value) > 0
-    #     ]
-    #     transfer_records = request.env['cash.transfer'].sudo().search([
-    #         ('name', '=', user.id),
-    #         ('from_counter', '=', int(counter_id)),
-    #         ('create_date', '>=', f"{date_str} 00:00:00"),
-    #         ('create_date', '<=', f"{date_str} 23:59:59"),
-    #     ])
-    #     print("transfer_records--------------",transfer_records)
-    #     transfer_lines = []
-    #     for tr in transfer_records:
-    #         transfer_lines.append((0, 0, {
-    #             'from_counter': tr.from_counter.id,
-    #             'to_counter': tr.to_counter.id,
-    #             'amount': tr.amount,
-    #             'remarks': tr.remarks,
-    #             'transfer_date': tr.create_date,
-    #         }))
-    #     print("transfer_lines--------------",transfer_lines)
-    #
-    #     # Create main record with lines
-    #     request.env['cash.denomination'].sudo().create({
-    #         'date': post.get('date'),
-    #         'user': request.env.user,
-    #         'counter': post.get('counter'),
-    #         'line_ids': line_values,
-    #         'transfer_line_ids': transfer_lines,
-    #     })
-    #
-    #     return request.redirect('/cash/denomination?success=1')
+
+
 
     @http.route(['/cash/denomination/submit'], type='http', auth='user', methods=['POST'], website=True, csrf=False)
     def cash_denomination_submit(self, **post):
         counter_id = post.get('counter')
         date_str = post.get('date')
         user = request.env.user
+        grand_total = post.get('grand_total')
+        cash_in_hand = post.get('cash_in_hand')
+        print('cash_in_hand-------',cash_in_hand)
+
+
 
         line_values = [
             (0, 0, {
@@ -95,7 +67,6 @@ class MyPageController(http.Controller):
             ('create_date', '>=', f"{date_str} 00:00:00"),
             ('create_date', '<=', f"{date_str} 23:59:59"),
         ])
-        print("transfer_records--------------", transfer_records)
 
         transfer_lines = []
         for tr in transfer_records:
@@ -107,7 +78,6 @@ class MyPageController(http.Controller):
                 'transfer_date': tr.create_date,
                 'to_user': tr.transfer_to_user.id if tr.transfer_to_user else False,
             }))
-        print("transfer_lines--------------", transfer_lines)
 
         # ✅ FIXED HERE
         request.env['cash.denomination'].sudo().create({
