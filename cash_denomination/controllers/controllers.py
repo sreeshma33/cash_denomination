@@ -34,10 +34,8 @@ class CashDenominationPageController(http.Controller):
         total_received_amt = sum(payment_receive.mapped('amount'))
         cash_in_hand = total_received_amt - cash_transfer_amt
 
-        # Get the counter_id from URL parameter if passed, else default to first
         selected_counter_id = int(kw.get('counter_id')) if kw.get('counter_id') else logged_user_counter[0].id
 
-        # Outgoing transfers by logged-in user
         outgoing_transfers = cash_transfer.with_user(user)
 
 
@@ -92,8 +90,8 @@ class CashDenominationPageController(http.Controller):
 
         cash_denomination_model.with_user(user).create({
             'date': date_str,
-            'user': user.id,  # Pass ID, not record
-            'counter': int(counter_id),  # Ensure it's an integer
+            'user': user.id,
+            'counter': int(counter_id),
             'line_ids': line_values,
             'transfer_line_ids': transfer_lines,
         })
@@ -102,11 +100,10 @@ class CashDenominationPageController(http.Controller):
 
     @http.route(['/cash/transfer/submit'], type='http', auth='user', methods=['POST'], website=True, csrf=False)
     def transfer_cash_submit(self, **post):
-        """Handles transfer form submission from modal"""
         user = request.env.user
 
-        # Extract form data
         from_counter_id = post.get('from_counter')
+        print("from_counter_id===",from_counter_id)
         to_counter_id = post.get('to_counter')
         transfer_amount = post.get('transfer_amount')
         remarks = post.get('remarks')
@@ -122,6 +119,5 @@ class CashDenominationPageController(http.Controller):
             'remarks': remarks or '',
         })
 
-        # Redirect back to page with success flag
         return request.redirect('/cash/denomination?transfer_success=1')
 

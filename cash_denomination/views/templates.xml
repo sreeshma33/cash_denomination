@@ -4,9 +4,10 @@
         <field name="name">Cash Denomination</field>
         <field name="url">/cash/denomination</field>
         <field name="sequence">20</field>
-        <field name="parent_id" ref="website.main_menu"/> <!-- Optional, for top-level menu -->
+        <field name="parent_id" ref="website.main_menu"/>
     </record>
     <template id="website_cash_denomination" name="Cash Denomination">
+
         <t t-call="website.layout">
 
             <div id="wrap" class="oe_structure" style="min-height:100vh; display:flex; align-items:center; justify-content:center; overflow:hidden;">
@@ -16,7 +17,6 @@
 
                         <h1 class="text-center mb-4">Cash Denomination</h1>
 
-                        <!-- Row 1: Date, Person, Counter, Cash Fields -->
                         <div class="row mb-6">
                             <div class="col-md-2">
                                 <label for="date" class="form-label">Date</label>
@@ -47,16 +47,14 @@
                                 <input type="text" id="cash_in_hand" name="cash_in_hand" class="form-control" t-att-value="cash_in_hand" readonly="readonly"/>
                             </div>
 
-                            <!-- Button to open transfer modal -->
                             <div class="col-md-2 d-flex align-items-end">
-                                <button type="button" class="btn" data-bs-toggle="modal" data-bs-target="#transferModal" style="background-color: #bcb9bc;">
+                                <button type="button" class="btn" data-bs-toggle="modal" data-bs-target="#transfer-modal" style="background-color: #bcb9bc;">
                                     Transfer Cash
                                 </button>
                             </div>
 
                         </div>
 
-                        <!-- Denomination Table -->
                         <div style="max-height:50vh; overflow-y:auto; margin-top:15px">
                             <table class="table table-bordered text-center">
                                 <thead class="table-light">
@@ -87,7 +85,7 @@
                         <div class="d-flex justify-content-center align-items-center mt-4 position-relative">
                             <div class="mx-auto">
                                 <button type="submit" class="btn btn-primary px-4">Submit</button>
-                                <button type="button" class="btn" data-bs-toggle="modal" data-bs-target="#transferdetailsModal" style="background-color: #bcb9bc;">
+                                <button type="button" class="btn" data-bs-toggle="modal" data-bs-target="#transfer-details-modal" style="background-color: #bcb9bc;">
                                     View Transfer Details
                                 </button>
                             </div>
@@ -103,11 +101,11 @@
             </div>
 
             <!-- Bootstrap Modal -->
-            <div class="modal fade" id="transferModal" tabindex="-1" aria-labelledby="transferModalLabel" aria-hidden="true">
+            <div class="modal fade" id="transfer-modal" tabindex="-1" aria-labelledby="transfer-modal-label" >
                 <div class="modal-dialog modal-dialog-centered">
                     <div class="modal-content">
                         <div class="modal-header" >
-                            <h4 class="text-center mb-4" id="transferModalLabel">Transfer Cash to Another Counter</h4>
+                            <h4 class="text-center mb-4" id="transfer-modal-label">Transfer Cash to Another Counter</h4>
                             <button type="button" class="btn-close btn-close-black" data-bs-dismiss="modal" aria-label="Close"></button>
                         </div>
                         <div class="modal-body">
@@ -150,11 +148,11 @@
             </div>
 
             <!-- Transfer Details Modal -->
-            <div class="modal fade" id="transferdetailsModal" tabindex="-1" aria-labelledby="transferDetailsModalLabel" aria-hidden="true">
+            <div class="modal fade" id="transfer-details-modal" tabindex="-1" aria-labelledby="transfer-details-modal-label" aria-hidden="true">
                 <div class="modal-dialog modal-dialog-centered modal-lg">
                     <div class="modal-content">
                         <div class="modal-header">
-                            <h4 class="modal-title" id="transferDetailsModalLabel">Transfer Details</h4>
+                            <h4 class="modal-title" id="transfer-details-modal-label">Transfer Details</h4>
                             <button type="button" class="btn-close btn-close-black" data-bs-dismiss="modal" aria-label="Close"></button>
                         </div>
                         <div class="modal-body">
@@ -217,93 +215,6 @@
                     </div>
                 </div>
             </div>
-
-            <!-- JS -->
-            <script>
-                document.addEventListener("DOMContentLoaded", function () {
-                    const countInputs = document.querySelectorAll(".counts-input");
-                    const grandTotalField = document.getElementById("grand_total");
-                    const form = document.getElementById("cash_denomination_form");
-
-                    function updateTotals() {
-                        let grandTotal = 0;
-                        countInputs.forEach(function(input) {
-                            const currency = parseInt(input.dataset.value) || 0;
-                            const counts = parseInt(input.value) || 0;
-                            const total = counts * currency;
-                            input.closest("tr").querySelector(".total-field").value = total;
-                            grandTotal += total;
-                        });
-                        grandTotalField.value = grandTotal;
-                    }
-
-                    countInputs.forEach(function(input) {
-                        input.addEventListener("input", updateTotals);
-                    });
-
-                    const today = new Date().toISOString().split('T')[0];
-                    document.getElementById("date_field").value = today;
-                    updateTotals();
-
-                    form.addEventListener("submit", function(event) {
-                        let hasValue = false;
-                        let grandTotal = parseFloat(grandTotalField.value) || 0;
-                        let cashInHand = parseFloat(document.getElementById("cash_in_hand").value) || 0;
-
-                        countInputs.forEach(function(input) {
-                            if (parseInt(input.value) > 0) {
-                                hasValue = true;
-                            }
-                        });
-
-                        if (!hasValue) {
-                            event.preventDefault();
-                            alert("Please enter at least one count before submitting!");
-                            return;
-                        }
-
-                        if (grandTotal !== cashInHand) {
-                            event.preventDefault();
-                            alert("Grand total does not match Cash in Hand! Please correct the counts.");
-                            return;
-                        }
-                    });
-
-                    const urlParams = new URLSearchParams(window.location.search);
-                        if (urlParams.has('transfer_success')) {
-                            alert("Cash transfer record created successfully!");
-                            const cleanUrl = window.location.origin + window.location.pathname;
-                            window.history.replaceState({}, document.title, cleanUrl);
-                        }
-                     if (urlParams.has('success')) {
-                        alert("Cash denomination submitted successfully!");
-                        const cleanUrl = window.location.origin + window.location.pathname;
-                        window.history.replaceState({}, document.title, cleanUrl);
-                    }
-
-                //  When modal is opened, copy selected counter value
-                    const transferModal = document.getElementById("transferModal");
-                    transferModal.addEventListener("show.bs.modal", function () {
-                        const selectedCounter = document.getElementById("counter").value;
-                        document.getElementById("from_counter").value = selectedCounter;
-                    });
-                const counterSelect = document.getElementById("counter");
-
-                // On change, store selection
-                counterSelect.addEventListener("change", function() {
-                    localStorage.setItem("selected_counter_id", this.value);
-                });
-
-                // On page load, set selected value
-                const saved = localStorage.getItem("selected_counter_id");
-                if (saved) {
-                    counterSelect.value = saved;
-                }
-
-                });
-
-            </script>
-
         </t>
     </template>
 </odoo>

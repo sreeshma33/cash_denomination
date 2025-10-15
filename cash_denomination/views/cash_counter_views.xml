@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <data>
-        <!-- List view -->
         <record id="view_cash_counter_list" model="ir.ui.view">
             <field name="name">cash.counter.list</field>
             <field name="model">cash.counter</field>
@@ -13,7 +12,6 @@
             </field>
         </record>
 
-        <!-- Form view -->
         <record id="view_cash_counter_form" model="ir.ui.view">
             <field name="name">cash.counter.form</field>
             <field name="model">cash.counter</field>
@@ -29,7 +27,6 @@
             </field>
         </record>
 
-        <!-- Action to open the list/form view of cash.counter -->
         <record id="action_cash_counter" model="ir.actions.act_window">
             <field name="name">Cash Counter</field>
             <field name="res_model">cash.counter</field>

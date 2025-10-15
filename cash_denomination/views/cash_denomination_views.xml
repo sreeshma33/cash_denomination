@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
   <data>
-    <!-- List view -->
     <record id="view_cash_denomination_list" model="ir.ui.view">
       <field name="name">cash.denomination.list</field>
       <field name="model">cash.denomination</field>
@@ -15,7 +14,6 @@
       </field>
     </record>
 
-    <!-- Form view -->
     <record id="view_cash_denomination_form" model="ir.ui.view">
       <field name="name">cash.denomination.form</field>
       <field name="model">cash.denomination</field>
@@ -65,7 +63,6 @@
       </field>
     </record>
 
-    <!-- Action to open the list/form view of cash.denomination -->
     <record id="action_cash_denomination" model="ir.actions.act_window">
       <field name="name">Cash Denomination</field>
       <field name="res_model">cash.denomination</field>
