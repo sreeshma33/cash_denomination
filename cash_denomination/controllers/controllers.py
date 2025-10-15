@@ -1,27 +1,35 @@
 from odoo import http
 from odoo.http import request
 from datetime import date
+from datetime import datetime, time
 
-class MyPageController(http.Controller):
+class CashDenominationPageController(http.Controller):
 
     @http.route('/cash/denomination', type='http', auth='user', website=True)
     def cash_denomination_page(self, **kw):
         user = request.env.user
         today = date.today()
+        start_datetime = datetime.combine(today, time.min)
+        end_datetime = datetime.combine(today, time.max)
         cash_counter_model = request.env['cash.counter']
-        account_payment_model = request.env['account.payment'].search([('journal_id.type','=','cash'),
-                                                                ('state', '=', 'paid'),
-                                                                ('date', '=', today)
-                                                                ])
+        account_payment_model = request.env['account.payment']
+        cash_transfer_model = request.env['cash.transfer']
         counters = cash_counter_model.with_user(user).search([])
+
 
         logged_user_counter = cash_counter_model.with_user(user).search([('name', 'in', user.ids)], order='id asc')
 
-        payment_receive = account_payment_model.with_user(user).filtered(lambda p: p.payment_type == 'inbound')
-        cash_transfer = request.env['cash.transfer'].with_user(user).search([('name', '=', user.id),
-                                                                    ('date', '>=', f"{today} 00:00:00"),
-                                                                    ('date', '<=', f"{today} 23:59:59"),
-                                                                        ])
+        payment_receive = account_payment_model.with_user(user).search([('journal_id.type','=','cash'),
+                                                                ('payment_type' ,'=', 'inbound'),
+                                                                ('state', '=', 'paid'),
+                                                                ('date', '=', today),
+                                                                ])
+
+        cash_transfer = cash_transfer_model.with_user(user).search([
+            ('name', '=', user.id),
+            ('date', '>=', start_datetime),
+            ('date', '<=', end_datetime),
+        ])
         cash_transfer_amt = sum(cash_transfer.mapped('amount'))
         total_received_amt = sum(payment_receive.mapped('amount'))
         cash_in_hand = total_received_amt - cash_transfer_amt
@@ -33,13 +41,6 @@ class MyPageController(http.Controller):
         outgoing_transfers = cash_transfer.with_user(user)
 
 
-
-        # Incoming transfers to logged-in user
-        # incoming_transfers = request.env['cash.transfer'].with_user(user).search([
-        #     ('transfer_to_user', '=', user.id),
-        #     ('date', '>=', f"{today} 00:00:00"),
-        #     ('date', '<=', f"{today} 23:59:59"),
-        # ])
         incoming_transfers = cash_transfer.with_user(user).search([('transfer_to_user', '=', user.id)])
         return request.render("cash_denomination.website_cash_denomination", {
             'counters': logged_user_counter,
@@ -59,9 +60,8 @@ class MyPageController(http.Controller):
         counter_id = post.get('counter')
         date_str = post.get('date')
         user = request.env.user
-        grand_total = post.get('grand_total')
-        cash_in_hand = post.get('cash_in_hand')
-
+        cash_transfer_model = request.env['cash.transfer']
+        cash_denomination_model = request.env['cash.denomination']
 
         line_values = [
             (0, 0, {
@@ -72,7 +72,7 @@ class MyPageController(http.Controller):
             if key.startswith('counts_') and value and int(value) > 0
         ]
 
-        transfer_records = request.env['cash.transfer'].with_user(user).search([
+        transfer_records = cash_transfer_model.with_user(user).search([
             ('name', '=', user.id),
             ('from_counter', '=', int(counter_id)),
             ('create_date', '>=', f"{date_str} 00:00:00"),
@@ -90,8 +90,7 @@ class MyPageController(http.Controller):
                 'to_user': tr.transfer_to_user.id if tr.transfer_to_user else False,
             }))
 
-        # ✅ FIXED HERE
-        request.env['cash.denomination'].with_user(user).create({
+        cash_denomination_model.with_user(user).create({
             'date': date_str,
             'user': user.id,  # Pass ID, not record
             'counter': int(counter_id),  # Ensure it's an integer
@@ -112,8 +111,9 @@ class MyPageController(http.Controller):
         transfer_amount = post.get('transfer_amount')
         remarks = post.get('remarks')
         transfer_to_user = post.get('transfer_to_user')
+        cash_transfer_model = request.env['cash.transfer']
 
-        request.env['cash.transfer'].with_user(user).create({
+        cash_transfer_model.with_user(user).create({
             'name': request.env.user.id,
             'from_counter': int(from_counter_id) if from_counter_id else False,
             'transfer_to_user': transfer_to_user,
