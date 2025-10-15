@@ -26,7 +26,6 @@
         'views/cash_denomination_views.xml',
         'views/cash_counter_views.xml',
         'views/cash_transfer_views.xml',
-        'views/inherit_account_move_views.xml',
         'views/templates.xml',
     ],
     # only loaded in demonstration mode

@@ -3,6 +3,7 @@ from odoo import models, fields, api
 class CashTransfer(models.Model):
     _name = 'cash.transfer'
     _description = 'Cash Transfer'
+    _order = 'id desc'
 
     name = fields.Many2one('res.users',string='Transferred By', )
     from_counter = fields.Many2one('cash.counter', string='From Counter', readonly=True)

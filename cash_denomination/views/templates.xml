@@ -17,7 +17,7 @@
                         <h1 class="text-center mb-4">Cash Denomination</h1>
 
                         <!-- Row 1: Date, Person, Counter, Cash Fields -->
-                        <div class="row mb-4">
+                        <div class="row mb-6">
                             <div class="col-md-2">
                                 <label for="date" class="form-label">Date</label>
                                 <input type="date" name="date" id="date_field" class="form-control" required="required"/>
@@ -32,7 +32,7 @@
                                 <label for="counter" class="form-label">Counter</label>
                                 <select name="counter" id="counter" class="form-control" required="required">
                                     <t t-foreach="counters" t-as="ctr">
-                                        <option t-att-value="ctr.id"><t t-esc="ctr.cash_counter"/></option>
+                                        <option t-att-value="ctr.id" t-att-selected="ctr.id == selected_counter_id"><t t-esc="ctr.cash_counter"/></option>
                                     </t>
                                 </select>
                             </div>
@@ -53,10 +53,11 @@
                                     Transfer Cash
                                 </button>
                             </div>
+
                         </div>
 
                         <!-- Denomination Table -->
-                        <div style="max-height:50vh; overflow-y:auto;">
+                        <div style="max-height:50vh; overflow-y:auto; margin-top:15px">
                             <table class="table table-bordered text-center">
                                 <thead class="table-light">
                                     <tr>
@@ -86,7 +87,11 @@
                         <div class="d-flex justify-content-center align-items-center mt-4 position-relative">
                             <div class="mx-auto">
                                 <button type="submit" class="btn btn-primary px-4">Submit</button>
+                                <button type="button" class="btn" data-bs-toggle="modal" data-bs-target="#transferdetailsModal" style="background-color: #bcb9bc;">
+                                    View Transfer Details
+                                </button>
                             </div>
+
                             <div class="position-absolute" style="right: 0;">
                                 <strong>Total Amount: </strong>
                                 <input type="text" id="grand_total" name="grand_total"  class="form-control d-inline-block" style="width:150px;" readonly="readonly"/>
@@ -139,6 +144,75 @@
                                     </div>
                                 </div>
                             </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Transfer Details Modal -->
+            <div class="modal fade" id="transferdetailsModal" tabindex="-1" aria-labelledby="transferDetailsModalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h4 class="modal-title" id="transferDetailsModalLabel">Transfer Details</h4>
+                            <button type="button" class="btn-close btn-close-black" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+
+                            <!-- Outgoing Transfers -->
+                            <h5>Transfers by You</h5>
+                            <table class="table table-bordered table-striped text-center mb-4">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>From Counter</th>
+                                        <th>To Counter</th>
+                                        <th>Amount</th>
+                                        <th>To User</th>
+                                        <th>Remarks</th>
+                                        <th>Date</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr t-foreach="outgoing_transfers" t-as="tr">
+                                        <td><t t-esc="tr.from_counter.cash_counter"/></td>
+                                        <td><t t-esc="tr.to_counter.cash_counter"/></td>
+                                        <td><t t-esc="tr.amount"/></td>
+                                        <td><t t-esc="tr.transfer_to_user.name if tr.transfer_to_user else ''"/></td>
+                                        <td><t t-esc="tr.remarks"/></td>
+                                        <td><t t-esc="tr.create_date"/></td>
+                                    </tr>
+                                    <tr t-if="not outgoing_transfers">
+                                        <td colspan="6">No transfers made by you today</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+
+                            <!-- Incoming Transfers -->
+                            <h5>Transfers to You</h5>
+                            <table class="table table-bordered table-striped text-center">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>From Counter</th>
+                                        <th>From User</th>
+                                        <th>Amount</th>
+                                        <th>Remarks</th>
+                                        <th>Date</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr t-foreach="incoming_transfers" t-as="tr">
+                                        <td><t t-esc="tr.from_counter.cash_counter"/></td>
+                                        <td><t t-esc="tr.name.name"/></td>
+                                        <td><t t-esc="tr.amount"/></td>
+                                        <td><t t-esc="tr.remarks"/></td>
+                                        <td><t t-esc="tr.create_date"/></td>
+                                    </tr>
+                                    <tr t-if="not incoming_transfers">
+                                        <td colspan="5">No transfers received today</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+
                         </div>
                     </div>
                 </div>
@@ -213,47 +287,18 @@
                         const selectedCounter = document.getElementById("counter").value;
                         document.getElementById("from_counter").value = selectedCounter;
                     });
-<!--                ======================================================================================================-->
-<!--                    const transferForm = document.getElementById("transfer_form");-->
-<!--                    const cashInHandField = document.getElementById("cash_in_hand");-->
+                const counterSelect = document.getElementById("counter");
 
-<!--                    transferForm.addEventListener("submit", function(event) {-->
-<!--                        event.preventDefault(); // Stop normal form submission-->
+                // On change, store selection
+                counterSelect.addEventListener("change", function() {
+                    localStorage.setItem("selected_counter_id", this.value);
+                });
 
-<!--                        const transferAmount = parseFloat(document.getElementById("transfer_amount").value) || 0;-->
-<!--                        let currentCash = parseFloat(cashInHandField.value) || 0;-->
-
-<!--                        if (transferAmount > currentCash) {-->
-<!--                            alert("Transfer amount cannot exceed cash in hand!");-->
-<!--                            return;-->
-<!--                        }-->
-
-<!--                        // Submit form via AJAX-->
-<!--                        const formData = new FormData(transferForm);-->
-<!--                        fetch(transferForm.action, {-->
-<!--                            method: "POST",-->
-<!--                            body: formData,-->
-<!--                            credentials: "same-origin"-->
-<!--                        })-->
-<!--                        .then(response => response.text())-->
-<!--                        .then(() => {-->
-<!--                            // Deduct the amount from Cash in Hand-->
-<!--                            cashInHandField.value = currentCash - transferAmount;-->
-
-<!--                            // Reset transfer form fields-->
-<!--                            document.getElementById("transfer_amount").value = '';-->
-<!--                            document.getElementById("remarks").value = '';-->
-
-<!--                            // Close the modal-->
-<!--                            const modal = bootstrap.Modal.getInstance(document.getElementById("transferModal"));-->
-<!--                            modal.hide();-->
-
-<!--                            alert("Cash transferred successfully!");-->
-<!--                        })-->
-<!--                        .catch(() => {-->
-<!--                            alert("Transfer failed! Please try again.");-->
-<!--                        });-->
-<!--                    });-->
+                // On page load, set selected value
+                const saved = localStorage.getItem("selected_counter_id");
+                if (saved) {
+                    counterSelect.value = saved;
+                }
 
                 });
 
