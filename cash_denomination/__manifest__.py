@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 {
     'name': "cash_denomination",
-    'version': "1.1",
+    'version': "1.2",
 
-    'summary': "Short (1 phrase/line) summary of the module's purpose",
+    'summary': "Short (1 phrase/line) summary of the module's purpose",#????  please change
 
     'description': """
       Cash Denomination
@@ -11,8 +11,7 @@
 
     'author': "iCodeBees",
     'website': "https://www.yourcompany.com",
-
-
+    # change website and category
     'category': 'Uncategorized',
     'version': '0.1',
 
@@ -23,15 +22,13 @@
         'views/cash_denomination_views.xml',
         'views/cash_counter_views.xml',
         'views/cash_transfer_views.xml',
-        'views/templates.xml',
+        'views/cash_denomination_templates.xml',
     ],
-
     'assets': {
-        'web.assets_frontend': [
-            'cash_denomination/static/src/js/cash_denomination.js',
-            'web/static/src/components/pager/pager_indicator.js',
-        ],
-},
+            'web.assets_frontend': [
+                'cash_denomination/static/src/js/cash_denomination.js',
+            ],
+        },
 
 
 }

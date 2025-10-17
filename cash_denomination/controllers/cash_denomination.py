@@ -19,6 +19,9 @@ class CashDenominationPageController(http.Controller):
 
         logged_user_counter = cash_counter_model.with_user(user).search([('name', 'in', user.ids)], order='id asc')
 
+        if not logged_user_counter:
+            return request.redirect('/?no_counter_allocated=1')
+
         payment_receive = account_payment_model.with_user(user).search([('journal_id.type','=','cash'),
                                                                 ('payment_type' ,'=', 'inbound'),
                                                                 ('state', '=', 'paid'),
@@ -34,15 +37,14 @@ class CashDenominationPageController(http.Controller):
         total_received_amt = sum(payment_receive.mapped('amount'))
         cash_in_hand = total_received_amt - cash_transfer_amt
 
-        selected_counter_id = int(kw.get('counter_id')) if kw.get('counter_id') else logged_user_counter[0].id
 
         outgoing_transfers = cash_transfer.with_user(user)
 
 
         incoming_transfers = cash_transfer.with_user(user).search([('transfer_to_user', '=', user.id)])
+
         return request.render("cash_denomination.website_cash_denomination", {
             'counters': logged_user_counter,
-            'selected_counter_id': selected_counter_id,
             'user': user,
             'total_cash': total_received_amt,
             'cash_in_hand': cash_in_hand,

@@ -1,17 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
+
     <record id="website_menu_cash_denomination" model="website.menu">
         <field name="name">Cash Denomination</field>
         <field name="url">/cash/denomination</field>
         <field name="sequence">20</field>
         <field name="parent_id" ref="website.main_menu"/>
     </record>
+
     <template id="website_cash_denomination" name="Cash Denomination">
 
         <t t-call="website.layout">
-
-            <div id="wrap" class="oe_structure" style="min-height:100vh; display:flex; align-items:center; justify-content:center; overflow:hidden;">
+            <div id="wrap" class="cash_denomination_template" style="min-height:100vh; display:flex; align-items:center; justify-content:center; overflow:hidden;">
                 <section class="container-fluid d-flex justify-content-center align-items-center" style="height:100vh;">
+
                     <form id="cash_denomination_form" action="/cash/denomination/submit" method="post"
                           class="p-4 border rounded shadow bg-white" style="max-width:90%; max-height:90%; overflow:auto;">
 
@@ -48,9 +50,10 @@
                             </div>
 
                             <div class="col-md-2 d-flex align-items-end">
-                                <button type="button" class="btn" data-bs-toggle="modal" data-bs-target="#transfer-modal" style="background-color: #bcb9bc;">
+                                <button type="button" class="btn" id="cash_transfer" data-bs-toggle="modal" data-bs-target="#transfer-modal" style="background-color: #bcb9bc;">
                                     Transfer Cash
                                 </button>
+
                             </div>
 
                         </div>

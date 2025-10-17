@@ -1,83 +1,71 @@
-console.log("===============1===========================")
-odoo.define('cash_denomination.cash_denomination', function (require) {
-    "use strict";
-    document.addEventListener("DOMContentLoaded", function () {
-        const countInputs = document.querySelectorAll("counts-input");
-        const grandTotalField = document.getElementById("grand_total");
-        const form = document.getElementById("cash_denomination_form");
+import publicWidget from "@web/legacy/js/public/public_widget";
+import { rpc } from "@web/core/network/rpc";
 
-        function updateTotals() {
-            let grandTotal = 0;
-            countInputs.forEach(function(input) {
-                const currency = parseInt(input.dataset.value) || 0;
-                const counts = parseInt(input.value) || 0;
-                const total = counts * currency;
-                input.closest("tr").querySelector(".total-field").value = total;
-                grandTotal += total;
-            });
-            grandTotalField.value = grandTotal;
+publicWidget.registry.CounterCashDenomination = publicWidget.Widget.extend({
+    selector: '.cash_denomination_template',
+    events: {
+        'click #cash_transfer': '_TransferCash',
+        'input .counts-input': '_onCountChange',
+         'submit #cash_denomination_form': '_CashDenominationSubmit',
+    },
+
+    start: function () {
+        this._super.apply(this, arguments);
+        this._setCurrentDate();
+        this.$('.counts-input').val('')
+        this.$('.total-field').val('')
+        this.$('#grand_total').val('0.00');
+
+    },
+
+    _setCurrentDate: function () {
+        const today = new Date();
+        const formattedDate = today.toISOString().split('T')[0];
+        this.$('#date_field').val(formattedDate);
+    },
+
+    _onCountChange: function (ev) {
+        const $input = $(ev.currentTarget);
+        const count = parseInt($input.val()) || 0;
+        const currency = parseInt($input.data('value')) || 0;
+        const total = count * currency;
+
+        const $row = $input.closest('tr');
+        $row.find('.total-field').val(total.toFixed(2));
+
+        this._updateGrandTotal();
+    },
+
+    _updateGrandTotal: function () {
+        let grandTotal = 0;
+        this.$('.total-field').each(function () {
+            const val = parseFloat($(this).val()) || 0;
+            grandTotal += val;
+        });
+
+        this.$('#grand_total').val(grandTotal.toFixed(2));
+    },
+    _TransferCash: function (ev) {
+        const selectedCounterId = this.$('#counter').val();
+        const from_counter = $('#from_counter').val();
+
+        $('#from_counter').val(selectedCounterId);
+
+    },
+    _CashDenominationSubmit: function (ev) {
+        ev.preventDefault();
+
+        const cashInHand = parseFloat(this.$('#cash_in_hand').val()) || 0;
+        const grandTotal = parseFloat(this.$('#grand_total').val()) || 0;
+
+        console.log("Cash in Hand:", cashInHand, "Grand Total:", grandTotal);
+
+        if (grandTotal !== cashInHand) {
+            $('#validation-modal').modal('show');
+            return;
         }
 
-        countInputs.forEach(function(input) {
-            input.addEventListener("input", updateTotals);
-        });
-
-        const today = new Date().toISOString().split('T')[0];
-        document.getElementById("date_field").value = today;
-        updateTotals();
-
-        form.addEventListener("submit", function(event) {
-            let hasValue = false;
-            let grandTotal = parseFloat(grandTotalField.value) || 0;
-            let cashInHand = parseFloat(document.getElementById("cash_in_hand").value) || 0;
-
-            countInputs.forEach(function(input) {
-                if (parseInt(input.value) > 0) {
-                    hasValue = true;
-                }
-            });
-
-            if (!hasValue) {
-                event.preventDefault();
-                alert("Please enter at least one count before submitting!");
-                return;
-            }
-
-            if (grandTotal !== cashInHand) {
-                event.preventDefault();
-                alert("Grand total does not match Cash in Hand! Please correct the counts.");
-                return;
-            }
-        });
-
-        const urlParams = new URLSearchParams(window.location.search);
-            if (urlParams.has('transfer_success')) {
-                alert("Cash transfer record created successfully!");
-                const cleanUrl = window.location.origin + window.location.pathname;
-                window.history.replaceState({}, document.title, cleanUrl);
-            }
-         if (urlParams.has('success')) {
-            alert("Cash denomination submitted successfully!");
-            const cleanUrl = window.location.origin + window.location.pathname;
-            window.history.replaceState({}, document.title, cleanUrl);
-        }
-
-        const transferModal = document.getElementById("transfer-modal");
-        transferModal.addEventListener("show.bs.modal", function () {
-            const selectedCounter = document.getElementById("counter").value;
-            document.getElementById("from_counter").value = selectedCounter;
-        });
-    const counterSelect = document.getElementById("counter");
-
-    counterSelect.addEventListener("change", function() {
-        localStorage.setItem("selected_counter_id", this.value);
-    });
-
-    const saved = localStorage.getItem("selected_counter_id");
-    if (saved) {
-        counterSelect.value = saved;
-    }
-
-    });
-
+        this.$('#cash_denomination_form')[0].submit();
+    },
 });
+
