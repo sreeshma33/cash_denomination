@@ -37,9 +37,7 @@ class CashDenominationPageController(http.Controller):
         total_received_amt = sum(payment_receive.mapped('amount'))
         cash_in_hand = total_received_amt - cash_transfer_amt
 
-
         outgoing_transfers = cash_transfer.with_user(user)
-
 
         incoming_transfers = cash_transfer.with_user(user).search([('transfer_to_user', '=', user.id)])
 
@@ -52,7 +50,6 @@ class CashDenominationPageController(http.Controller):
             'outgoing_transfers': outgoing_transfers,
             'incoming_transfers': incoming_transfers,
         })
-
 
 
     @http.route(['/cash/denomination/submit'], type='http', auth='user', methods=['POST'], website=True, csrf=False)

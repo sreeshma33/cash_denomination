@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': "cash_denomination",
-    'version': "1.2",
+    'version': "1.5",
 
     'summary': "Short (1 phrase/line) summary of the module's purpose",#????  please change
 
