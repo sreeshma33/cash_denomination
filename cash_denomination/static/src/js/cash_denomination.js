@@ -6,7 +6,7 @@ publicWidget.registry.CounterCashDenomination = publicWidget.Widget.extend({
     events: {
         'click #cash_transfer': '_TransferCash',
         'input .counts-input': '_onCountChange',
-         'submit #cash_denomination_form': '_CashDenominationSubmit',
+        'submit #cash_denomination_form': '_CashDenominationSubmit',
     },
 
     start: function () {
@@ -16,6 +16,9 @@ publicWidget.registry.CounterCashDenomination = publicWidget.Widget.extend({
         this.$('.total-field').val('')
         this.$('#grand_total').val('0.00');
 
+        this._checkTransferSuccess();
+        this._checkSameCounterError();
+        this._checkInsufficientCash(); 
     },
 
     _setCurrentDate: function () {
@@ -47,25 +50,59 @@ publicWidget.registry.CounterCashDenomination = publicWidget.Widget.extend({
     },
     _TransferCash: function (ev) {
         const selectedCounterId = this.$('#counter').val();
-        const from_counter = $('#from_counter').val();
+        const CashInHand = this.$('#cash_in_hand').val();
+        const LoggedUser = this.$('#person').val();
 
         $('#from_counter').val(selectedCounterId);
+        $('#transfer_cash_in_hand').val(CashInHand);
+        $('#logged_user').val(LoggedUser);
 
     },
     _CashDenominationSubmit: function (ev) {
         ev.preventDefault();
-
         const cashInHand = parseFloat(this.$('#cash_in_hand').val()) || 0;
         const grandTotal = parseFloat(this.$('#grand_total').val()) || 0;
 
-        console.log("Cash in Hand:", cashInHand, "Grand Total:", grandTotal);
 
         if (grandTotal !== cashInHand) {
             $('#validation-modal').modal('show');
             return;
         }
 
-        this.$('#cash_denomination_form')[0].submit();
+        $('#success-modal').modal('show');
+
+        $('#success-modal').one('hidden.bs.modal', () => {
+            this.$('#cash_denomination_form')[0].submit();
+        });
     },
+    _checkTransferSuccess: function () {
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('transfer_success') === '1') {
+            $('#transfer-success-modal').modal('show');
+
+            const newUrl = window.location.pathname;
+            window.history.replaceState({}, document.title, newUrl);
+        }
+    },
+
+    _checkSameCounterError: function () {
+        const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('same_counter_error') === '1') {
+        $('#same-counter-modal').modal('show');
+
+            const newUrl = window.location.pathname;
+            window.history.replaceState({}, document.title, newUrl);
+        }
+    },
+
+    _checkInsufficientCash: function () {
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('insufficient_cash') === '1') {
+            $('#insufficient-cash-modal').modal('show');
+            const newUrl = window.location.pathname;
+            window.history.replaceState({}, document.title, newUrl);
+        }
+    },
+
 });
 

@@ -13,11 +13,27 @@ class CashDenomination(models.Model):
     grand_total = fields.Float(string='Total', compute='_comput_grand_total', store=True)
     transfer_line_ids = fields.One2many('cash.denomination.transfer.line', 'denomination_id', string='Cash Transfer Lines', readonly=True)
 
+    state = fields.Selection([
+        ('draft', 'Draft'),
+        ('approved', 'Approved'),
+        ('rejected', 'Rejected'),
+    ], string='Status', default='draft', tracking=True)
+
     @api.depends('line_ids.sub_total')
     def _comput_grand_total(self):
         for record in self:
             self.grand_total=sum(record.line_ids.mapped('sub_total'))
-    
+
+    def action_reset_to_draft(self):
+        self.write({'state': 'draft'})
+
+    def action_approve(self):
+        self.write({'state': 'approved'})
+
+    def action_reject(self):
+        self.write({'state': 'rejected'})
+
+
 class CashDenominationLine(models.Model):
     _name = 'cash.denomination.line'
     _description = 'Cash Denomination Line'

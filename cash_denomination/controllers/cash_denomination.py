@@ -2,6 +2,7 @@ from odoo import http
 from odoo.http import request
 from datetime import date
 from datetime import datetime, time
+import pytz
 
 class CashDenominationPageController(http.Controller):
 
@@ -14,13 +15,15 @@ class CashDenominationPageController(http.Controller):
         cash_counter_model = request.env['cash.counter']
         account_payment_model = request.env['account.payment']
         cash_transfer_model = request.env['cash.transfer']
+        res_users = request.env['res.users']
+        denominations = [500, 200, 100, 50, 20, 10, 5, 2, 1]
+
+            
         counters = cash_counter_model.with_user(user).search([])
+        users = res_users.with_user(user).search([])
 
 
         logged_user_counter = cash_counter_model.with_user(user).search([('name', 'in', user.ids)], order='id asc')
-
-        if not logged_user_counter:
-            return request.redirect('/?no_counter_allocated=1')
 
         payment_receive = account_payment_model.with_user(user).search([('journal_id.type','=','cash'),
                                                                 ('payment_type' ,'=', 'inbound'),
@@ -28,27 +31,57 @@ class CashDenominationPageController(http.Controller):
                                                                 ('date', '=', today),
                                                                 ])
 
-        cash_transfer = cash_transfer_model.with_user(user).search([
+        cash_transfer = cash_transfer_model.search([
             ('name', '=', user.id),
             ('date', '>=', start_datetime),
             ('date', '<=', end_datetime),
         ])
-        cash_transfer_amt = sum(cash_transfer.mapped('amount'))
-        total_received_amt = sum(payment_receive.mapped('amount'))
+
+        cash_transfer_amt = sum(int(x) for x in cash_transfer.mapped('amount'))
+        total_received_amt = sum(int(x) for x in payment_receive.mapped('amount'))
         cash_in_hand = total_received_amt - cash_transfer_amt
 
-        outgoing_transfers = cash_transfer.with_user(user)
+        user_tz = pytz.timezone(user.tz or 'UTC')
+        outgoing_transfers = []
+        for tr in cash_transfer:
+            local_create = tr.create_date.astimezone(user_tz) if tr.create_date else False
+            outgoing_transfers.append({
+                'from_counter': tr.from_counter.cash_counter if tr.from_counter else '',
+                'to_counter': tr.to_counter.cash_counter if tr.to_counter else '',
+                'amount': tr.amount,
+                'transfer_to_user': tr.transfer_to_user.name if tr.transfer_to_user else '',
+                'remarks': tr.remarks or '',
+                'local_create': local_create.strftime('%Y-%m-%d %H:%M:%S') if local_create else '',
+            })
 
-        incoming_transfers = cash_transfer.with_user(user).search([('transfer_to_user', '=', user.id)])
+        incoming_cash_transfer = cash_transfer_model.search([
+            ('transfer_to_user', '=', user.id),
+            ('date', '>=', start_datetime),
+            ('date', '<=', end_datetime),
+        ])
+
+        incoming_transfers = []
+        for tr in incoming_cash_transfer:
+            local_create = tr.create_date.astimezone(user_tz) if tr.create_date else False
+            incoming_transfers.append({
+                'from_counter': tr.from_counter.cash_counter if tr.from_counter else '',
+                'to_counter': tr.to_counter.cash_counter if tr.to_counter else '',
+                'amount': tr.amount,
+                'transferred_by': tr.name.name if tr.name else '',
+                'remarks': tr.remarks or '',
+                'local_create': local_create.strftime('%Y-%m-%d %H:%M:%S') if local_create else '',
+            })
 
         return request.render("cash_denomination.website_cash_denomination", {
             'counters': logged_user_counter,
             'user': user,
+            'users': users,
             'total_cash': total_received_amt,
             'cash_in_hand': cash_in_hand,
             'to_counter': counters,
             'outgoing_transfers': outgoing_transfers,
             'incoming_transfers': incoming_transfers,
+            'denominations': denominations,
         })
 
 
@@ -102,12 +135,23 @@ class CashDenominationPageController(http.Controller):
         user = request.env.user
 
         from_counter_id = post.get('from_counter')
-        print("from_counter_id===",from_counter_id)
         to_counter_id = post.get('to_counter')
         transfer_amount = post.get('transfer_amount')
         remarks = post.get('remarks')
+        cash_in_hand = post.get('cash_in_hand')
+        logged_person = post.get('logged_user')
         transfer_to_user = post.get('transfer_to_user')
         cash_transfer_model = request.env['cash.transfer']
+        user_rec = request.env['res.users']
+
+        transfer_user_rec = user_rec.with_user(user).browse(int(transfer_to_user))
+
+        if logged_person == transfer_user_rec.name or from_counter_id == to_counter_id:
+            return request.redirect('/cash/denomination?same_counter_error=1')
+
+        if transfer_amount > cash_in_hand:
+            return request.redirect('/cash/denomination?insufficient_cash=1')
+
 
         cash_transfer_model.with_user(user).create({
             'name': request.env.user.id,
